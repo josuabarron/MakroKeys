@@ -26,4 +26,4 @@ MacroKeys is intended for trusted local networks. It sends commands to the confi
 
 ## License
 
-MacroKeys is licensed under the MIT License. See `LICENSE` for details.
+MacroKeys is source-available under the PolyForm Noncommercial License 1.0.0. Noncommercial use, modification, and redistribution are allowed; commercial use, resale, and paid redistribution are not permitted without separate permission. See `LICENSE` for details.
