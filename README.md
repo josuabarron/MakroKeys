@@ -14,9 +14,21 @@ MacroKeys is currently written for this style of 6-key USB macro pad:
 
 ## Screenshots
 
+### Shortcut configuration
+
 ![MacroKeys configuration window](Screenshots/configuration.png)
 
-![MacroKeys settings window](Screenshots/settings.png)
+### ProPresenter actions
+
+![MacroKeys ProPresenter action list](Screenshots/propresenter-actions.png)
+
+### Action parameters
+
+![MacroKeys action parameters](Screenshots/action-parameters.png)
+
+### X32 actions
+
+![MacroKeys X32 action list](Screenshots/x32-actions.png)
 
 ## Build
 
