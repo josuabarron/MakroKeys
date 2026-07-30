@@ -8,6 +8,43 @@ struct ConnectionConfig: Codable {
     var x32Port: Int
     var ppHost: String
     var ppPort: Int
+    var lightkeyHost: String
+    var lightkeyPort: Int
+
+    enum CodingKeys: String, CodingKey {
+        case x32IP
+        case x32Port
+        case ppHost
+        case ppPort
+        case lightkeyHost
+        case lightkeyPort
+    }
+
+    init(
+        x32IP: String,
+        x32Port: Int,
+        ppHost: String,
+        ppPort: Int,
+        lightkeyHost: String = "127.0.0.1",
+        lightkeyPort: Int = 21600
+    ) {
+        self.x32IP = x32IP
+        self.x32Port = x32Port
+        self.ppHost = ppHost
+        self.ppPort = ppPort
+        self.lightkeyHost = lightkeyHost
+        self.lightkeyPort = lightkeyPort
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        x32IP = try container.decode(String.self, forKey: .x32IP)
+        x32Port = try container.decode(Int.self, forKey: .x32Port)
+        ppHost = try container.decode(String.self, forKey: .ppHost)
+        ppPort = try container.decode(Int.self, forKey: .ppPort)
+        lightkeyHost = try container.decodeIfPresent(String.self, forKey: .lightkeyHost) ?? "127.0.0.1"
+        lightkeyPort = try container.decodeIfPresent(Int.self, forKey: .lightkeyPort) ?? 21600
+    }
 }
 
 // MARK: - Hot Keys
@@ -31,7 +68,7 @@ struct HotKey: Codable, Hashable {
         HotKey(
             keyCode: defaultKeyCode(for: slot),
             modifiers: UInt32(controlKey | shiftKey),
-            keyEquivalent: String(slot)
+            keyEquivalent: defaultKeyEquivalent(for: slot)
         )
     }
 
@@ -43,8 +80,16 @@ struct HotKey: Codable, Hashable {
         case 4: return 0x15
         case 5: return 0x17
         case 6: return 0x16
+        case 7: return 0x1A
+        case 8: return 0x1C
+        case 9: return 0x19
+        case 10: return 0x1D
         default: return 0x12
         }
+    }
+
+    private static func defaultKeyEquivalent(for slot: Int) -> String {
+        slot == 10 ? "0" : String(slot)
     }
 }
 
@@ -180,6 +225,12 @@ enum Action: Codable, Identifiable, Hashable {
     case x32Recording(start: Bool)
     case x32Osc(address: String, value: Double)
 
+    // Lightkey
+    case lightkeyCueToggle(address: String, fadeTime: Double)
+    case lightkeyCueActivate(address: String, fadeTime: Double)
+    case lightkeyCueDeactivate(address: String, fadeTime: Double)
+    case lightkeyOsc(address: String, value: Double)
+
     var id: String {
         switch self {
         case .ppTrigger:            return "ppTrigger"
@@ -229,6 +280,10 @@ enum Action: Codable, Identifiable, Hashable {
         case .x32TargetMuteToggle: return "x32TargetMuteToggle"
         case .x32Recording:        return "x32Recording"
         case .x32Osc:              return "x32Osc"
+        case .lightkeyCueToggle:   return "lightkeyCueToggle"
+        case .lightkeyCueActivate: return "lightkeyCueActivate"
+        case .lightkeyCueDeactivate: return "lightkeyCueDeactivate"
+        case .lightkeyOsc:         return "lightkeyOsc"
         }
     }
 
@@ -330,6 +385,14 @@ enum Action: Codable, Identifiable, Hashable {
             return L(start ? "action.x32.recording_start" : "action.x32.recording_stop")
         case .x32Osc(let addr, let val):
             return L("action.x32.osc", addr, val)
+        case .lightkeyCueToggle(let address, let fadeTime):
+            return L("action.lightkey.cue_toggle", address, fadeTime)
+        case .lightkeyCueActivate(let address, let fadeTime):
+            return L("action.lightkey.cue_activate", address, fadeTime)
+        case .lightkeyCueDeactivate(let address, let fadeTime):
+            return L("action.lightkey.cue_deactivate", address, fadeTime)
+        case .lightkeyOsc(let address, let value):
+            return L("action.lightkey.osc", address, value)
         }
     }
 
@@ -357,6 +420,15 @@ enum Action: Codable, Identifiable, Hashable {
         case .x32Fader, .x32FaderAdjust, .x32Mute, .x32MuteToggle,
              .x32TargetFader, .x32TargetFaderAdjust, .x32TargetMute, .x32TargetMuteToggle,
              .x32Recording, .x32Osc:
+            return true
+        default:
+            return false
+        }
+    }
+
+    var isLightkey: Bool {
+        switch self {
+        case .lightkeyCueToggle, .lightkeyCueActivate, .lightkeyCueDeactivate, .lightkeyOsc:
             return true
         default:
             return false
@@ -409,19 +481,23 @@ struct AppConfig: Codable {
     var shortcuts: [Shortcut]
     var launchAtLogin: Bool
     var language: AppLanguage
+    var buttonCount: Int
 
     enum CodingKeys: String, CodingKey {
         case connections
         case shortcuts
         case launchAtLogin
         case language
+        case buttonCount
     }
 
-    init(connections: ConnectionConfig, shortcuts: [Shortcut], launchAtLogin: Bool, language: AppLanguage) {
+    init(connections: ConnectionConfig, shortcuts: [Shortcut], launchAtLogin: Bool, language: AppLanguage, buttonCount: Int = 6) {
         self.connections = connections
         self.shortcuts = shortcuts
         self.launchAtLogin = launchAtLogin
         self.language = language
+        self.buttonCount = buttonCount
+        normalize()
     }
 
     init(from decoder: Decoder) throws {
@@ -430,6 +506,38 @@ struct AppConfig: Codable {
         shortcuts = try container.decode([Shortcut].self, forKey: .shortcuts)
         launchAtLogin = try container.decodeIfPresent(Bool.self, forKey: .launchAtLogin) ?? false
         language = try container.decodeIfPresent(AppLanguage.self, forKey: .language) ?? .german
+        buttonCount = try container.decodeIfPresent(Int.self, forKey: .buttonCount) ?? 6
+        normalize()
+    }
+
+    var activeShortcuts: [Shortcut] {
+        Array(shortcuts.prefix(buttonCount))
+    }
+
+    mutating func normalize() {
+        buttonCount = min(max(buttonCount, Self.minimumButtonCount), Self.maximumButtonCount)
+        ensureShortcutCapacity()
+    }
+
+    mutating func ensureShortcutCapacity() {
+        guard shortcuts.count < buttonCount else { return }
+        let existingNumbers = Set(shortcuts.map(\.keyNumber))
+        for keyNumber in 1...buttonCount where !existingNumbers.contains(keyNumber) {
+            shortcuts.append(Self.defaultShortcut(for: keyNumber))
+        }
+        shortcuts.sort { $0.keyNumber < $1.keyNumber }
+    }
+
+    static let minimumButtonCount = 1
+    static let maximumButtonCount = 10
+
+    static func defaultShortcut(for keyNumber: Int) -> Shortcut {
+        Shortcut(
+            keyNumber: keyNumber,
+            label: "",
+            actions: [],
+            enabled: true
+        )
     }
 
     static var `default`: AppConfig {
@@ -438,7 +546,9 @@ struct AppConfig: Codable {
                 x32IP: "192.168.1.100",
                 x32Port: 10023,
                 ppHost: "127.0.0.1",
-                ppPort: 52809
+                ppPort: 52809,
+                lightkeyHost: "127.0.0.1",
+                lightkeyPort: 21600
             ),
             shortcuts: [
                 Shortcut(keyNumber: 1, label: "Präsentation 1 laden", actions: [
@@ -463,7 +573,8 @@ struct AppConfig: Codable {
                 ], enabled: true)
             ],
             launchAtLogin: false,
-            language: .german
+            language: .german,
+            buttonCount: 6
         )
     }
 }
@@ -658,6 +769,44 @@ enum X32ActionType: CaseIterable {
     }
 }
 
+enum LightkeyActionType: CaseIterable {
+    case cueToggle
+    case cueActivate
+    case cueDeactivate
+    case osc
+
+    var displayName: String {
+        switch self {
+        case .cueToggle: return L("type.lightkey.cue_toggle")
+        case .cueActivate: return L("type.lightkey.cue_activate")
+        case .cueDeactivate: return L("type.lightkey.cue_deactivate")
+        case .osc: return L("type.lightkey.osc")
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .cueToggle: return L("desc.lightkey.cue_toggle")
+        case .cueActivate: return L("desc.lightkey.cue_activate")
+        case .cueDeactivate: return L("desc.lightkey.cue_deactivate")
+        case .osc: return L("desc.lightkey.osc")
+        }
+    }
+
+    var defaultAction: Action {
+        switch self {
+        case .cueToggle:
+            return .lightkeyCueToggle(address: "/live/My_Control_Panel/cue/My_Cue_Name/toggle", fadeTime: 0)
+        case .cueActivate:
+            return .lightkeyCueActivate(address: "/live/My_Control_Panel/cue/My_Cue_Name/activate", fadeTime: 0)
+        case .cueDeactivate:
+            return .lightkeyCueDeactivate(address: "/live/My_Control_Panel/cue/My_Cue_Name/deactivate", fadeTime: 0)
+        case .osc:
+            return .lightkeyOsc(address: "/live/My_Control_Panel/cue/My_Cue_Name/toggle", value: 0)
+        }
+    }
+}
+
 // MARK: - Config Persistence
 
 struct ConfigStore {
@@ -681,6 +830,7 @@ struct ConfigStore {
                 config.connections.x32Port = 10023
                 _ = save(config)
             }
+            config.normalize()
             return config
         } catch {
             print("Config load error: \(error)")
@@ -703,7 +853,9 @@ struct ConfigStore {
 
     static func save(_ config: AppConfig) -> Bool {
         do {
-            let data = try JSONEncoder().encode(config)
+            var normalizedConfig = config
+            normalizedConfig.normalize()
+            let data = try JSONEncoder().encode(normalizedConfig)
             try data.write(to: configURL, options: .atomic)
             return true
         } catch {

@@ -29,7 +29,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         let win = NSWindow(contentViewController: hostingController)
         win.title = L("window.settings")
         win.styleMask = [.titled, .closable]
-        win.setContentSize(NSSize(width: 460, height: 310))
+        win.setContentSize(NSSize(width: 500, height: 500))
         win.center()
         win.delegate = self
         self.window = win
@@ -70,6 +70,16 @@ struct ConnectionSettingsView: View {
                     }
                     .labelsHidden()
                     .frame(width: 150)
+                }
+            }
+
+            GroupBox {
+                HStack {
+                    Text(L("settings.button_count"))
+                        .font(.system(size: 13, weight: .semibold))
+                    Spacer()
+                    Stepper(L("settings.buttons_value", config.buttonCount), value: buttonCountBinding, in: AppConfig.minimumButtonCount...AppConfig.maximumButtonCount)
+                        .frame(width: 170)
                 }
             }
 
@@ -139,13 +149,48 @@ struct ConnectionSettingsView: View {
                 }
             }
 
+            GroupBox {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text("Lightkey")
+                            .font(.system(size: 13, weight: .semibold))
+                        Button {
+                            openLightkeyDocs()
+                        } label: {
+                            Image(systemName: "questionmark.circle")
+                        }
+                        .buttonStyle(.plain)
+                        .help(L("help.lightkey_docs"))
+                        Spacer()
+                        Circle()
+                            .fill(executor.isConnectedLightkey ? Color.green : Color.orange)
+                            .frame(width: 8, height: 8)
+                    }
+
+                    HStack(spacing: 14) {
+                        LabeledContent("URL") {
+                            TextField("Host", text: lightkeyHostBinding)
+                                .textFieldStyle(.roundedBorder)
+                                .frame(width: 170)
+                        }
+                        LabeledContent("OSC Port") {
+                            TextField("Port", text: lightkeyPortBinding)
+                                .textFieldStyle(.roundedBorder)
+                                .frame(width: 74)
+                        }
+                    }
+                }
+            }
+
         }
         .font(.system(size: 12))
         .padding(18)
-        .frame(width: 460, height: 310)
+        .frame(width: 500, height: 500)
         .onAppear {
+            config.normalize()
             triggerProPresenterTest()
             triggerX32Test()
+            triggerLightkeyTest()
         }
     }
 
@@ -165,6 +210,17 @@ struct ConnectionSettingsView: View {
             set: { language in
                 config.language = language
                 l10n.setLanguage(language)
+                onSave()
+            }
+        )
+    }
+
+    private var buttonCountBinding: Binding<Int> {
+        Binding(
+            get: { config.buttonCount },
+            set: { newCount in
+                config.buttonCount = min(max(newCount, AppConfig.minimumButtonCount), AppConfig.maximumButtonCount)
+                config.ensureShortcutCapacity()
                 onSave()
             }
         )
@@ -204,6 +260,28 @@ struct ConnectionSettingsView: View {
         )
     }
 
+    private var lightkeyHostBinding: Binding<String> {
+        Binding(
+            get: { config.connections.lightkeyHost },
+            set: { newHost in
+                config.connections.lightkeyHost = newHost
+                saveAndTestLightkey()
+            }
+        )
+    }
+
+    private var lightkeyPortBinding: Binding<String> {
+        Binding(
+            get: { String(config.connections.lightkeyPort) },
+            set: { newPort in
+                if let port = Int(newPort) {
+                    config.connections.lightkeyPort = port
+                    saveAndTestLightkey()
+                }
+            }
+        )
+    }
+
     private func saveAndTestProPresenter() {
         onSave()
         triggerProPresenterTest()
@@ -224,6 +302,16 @@ struct ConnectionSettingsView: View {
         Task { await executor.testX32Connection() }
     }
 
+    private func saveAndTestLightkey() {
+        onSave()
+        triggerLightkeyTest()
+    }
+
+    private func triggerLightkeyTest() {
+        executor.configure(connections: config.connections)
+        Task { await executor.testLightkeyConnection() }
+    }
+
     private func openProPresenterDocs() {
         let url = "http://\(config.connections.ppHost):\(config.connections.ppPort)/v1/doc/index.html"
         openURL(url)
@@ -231,6 +319,10 @@ struct ConnectionSettingsView: View {
 
     private func openX32Docs() {
         openURL("https://wiki.munichmakerlab.de/images/1/17/UNOFFICIAL_X32_OSC_REMOTE_PROTOCOL_%281%29.pdf")
+    }
+
+    private func openLightkeyDocs() {
+        openURL("https://lightkeyapp.com/media/pages/help/manual/0def2c007d-1779439202/Lightkey%20User%20Guide.pdf")
     }
 
     private func openURL(_ string: String) {

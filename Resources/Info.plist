@@ -25,7 +25,7 @@
     <key>LSUIElement</key>
     <true/>
     <key>NSLocalNetworkUsageDescription</key>
-    <string>MacroKeys connects to ProPresenter and X32 devices on your local network.</string>
+    <string>MacroKeys connects to ProPresenter, X32, and Lightkey devices on your local network.</string>
     <key>NSHumanReadableCopyright</key>
     <string>© 2025 Josua Barron</string>
     <key>NSPrincipalClass</key>

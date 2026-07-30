@@ -43,7 +43,7 @@ struct AddActionWizardView: View {
                 .font(.system(size: 15, weight: .medium))
                 .padding(.top, 20)
 
-            HStack(spacing: 20) {
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
                 CategoryCard(
                     title: "ProPresenter",
                     subtitle: L("wizard.pp_subtitle"),
@@ -61,6 +61,16 @@ struct AddActionWizardView: View {
                     color: .orange
                 ) {
                     category = "x32"
+                    step = 1
+                }
+
+                CategoryCard(
+                    title: "Lightkey",
+                    subtitle: L("wizard.lightkey_subtitle"),
+                    icon: "lightbulb",
+                    color: .yellow
+                ) {
+                    category = "lightkey"
                     step = 1
                 }
             }
@@ -86,8 +96,16 @@ struct AddActionWizardView: View {
                                 step = 2
                             }
                         }
-                    } else {
+                    } else if category == "x32" {
                         ForEach(X32ActionType.allCases, id: \.self) { type in
+                            ActionTypeRow(title: type.displayName, description: type.description) {
+                                configuredAction = type.defaultAction
+                                enteringConfigStep = true
+                                step = 2
+                            }
+                        }
+                    } else {
+                        ForEach(LightkeyActionType.allCases, id: \.self) { type in
                             ActionTypeRow(title: type.displayName, description: type.description) {
                                 configuredAction = type.defaultAction
                                 enteringConfigStep = true

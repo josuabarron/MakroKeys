@@ -172,6 +172,33 @@ struct ActionConfigForm: View {
                     get: { start },
                     set: { action = .x32Recording(start: $0) }
                 ))
+            case .lightkeyCueToggle(let address, let fadeTime):
+                lightkeyCueFields(address: address, fadeTime: fadeTime) { newAddress, newFadeTime in
+                    action = .lightkeyCueToggle(address: newAddress, fadeTime: newFadeTime)
+                }
+            case .lightkeyCueActivate(let address, let fadeTime):
+                lightkeyCueFields(address: address, fadeTime: fadeTime) { newAddress, newFadeTime in
+                    action = .lightkeyCueActivate(address: newAddress, fadeTime: newFadeTime)
+                }
+            case .lightkeyCueDeactivate(let address, let fadeTime):
+                lightkeyCueFields(address: address, fadeTime: fadeTime) { newAddress, newFadeTime in
+                    action = .lightkeyCueDeactivate(address: newAddress, fadeTime: newFadeTime)
+                }
+            case .lightkeyOsc(let address, let value):
+                HStack {
+                    TextField(L("form.address"), text: Binding(
+                        get: { address },
+                        set: { action = .lightkeyOsc(address: $0, value: value) }
+                    ))
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 260)
+                    TextField(L("form.value"), value: Binding(
+                        get: { value },
+                        set: { action = .lightkeyOsc(address: address, value: $0) }
+                    ), format: .number)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 70)
+                }
             default:
                 Text(L("form.no_parameters"))
                     .foregroundStyle(.secondary)
@@ -238,6 +265,35 @@ struct ActionConfigForm: View {
             TextField("", text: value)
                 .textFieldStyle(.roundedBorder)
                 .frame(width: 200)
+        }
+    }
+
+    private func lightkeyCueFields(
+        address: String,
+        fadeTime: Double,
+        onChange: @escaping (String, Double) -> Void
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(L("form.address"))
+                Spacer()
+                TextField("", text: Binding(
+                    get: { address },
+                    set: { onChange($0, fadeTime) }
+                ))
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 300)
+            }
+            HStack {
+                Text(L("form.fade_time"))
+                Spacer()
+                TextField("", value: Binding(
+                    get: { fadeTime },
+                    set: { onChange(address, max(0, $0)) }
+                ), format: .number)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 70)
+            }
         }
     }
 

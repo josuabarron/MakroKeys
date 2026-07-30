@@ -40,9 +40,9 @@ struct ConfigView: View {
 
             ScrollView {
                 VStack(spacing: 12) {
-                    ForEach($config.shortcuts) { $shortcut in
+                    ForEach(0..<visibleShortcutCount, id: \.self) { index in
                         ShortcutCardView(
-                            shortcut: $shortcut,
+                            shortcut: $config.shortcuts[index],
                             onSave: saveWithRefresh,
                             onEdit: openEditorWindow,
                             onChangeHotKey: openShortcutCaptureWindow
@@ -57,9 +57,17 @@ struct ConfigView: View {
             Divider()
         }
         .frame(minWidth: 640, minHeight: 600)
+        .onAppear {
+            config.normalize()
+        }
+    }
+
+    private var visibleShortcutCount: Int {
+        min(config.buttonCount, config.shortcuts.count)
     }
 
     private func saveWithRefresh() {
+        config.normalize()
         onSave()
         _refresh += 1
     }
@@ -192,7 +200,10 @@ struct ShortcutCardView: View {
 
             Button {
                 Task {
-                    await ActionExecutor.shared.execute(actions: shortcut.actions)
+                    let succeeded = await ActionExecutor.shared.execute(actions: shortcut.actions)
+                    await MainActor.run {
+                        ShortcutOverlayController.shared.show(shortcut: shortcut, failed: !succeeded)
+                    }
                 }
             } label: {
                 Image(systemName: "play.fill")

@@ -9,6 +9,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var config: AppConfig = ConfigStore.load()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        config.normalize()
+        configureApplicationMenu()
+
         // Configure executor
         ActionExecutor.shared.configure(connections: config.connections)
 
@@ -20,7 +23,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem.menu = buildMenu()
 
         // Setup hotkeys
-        HotKeyManager.shared.register(shortcuts: config.shortcuts)
+        HotKeyManager.shared.register(shortcuts: config.activeShortcuts)
         HotKeyManager.shared.onHotKey = { [weak self] keyNumber in
             self?.triggerShortcut(keyNumber: keyNumber)
         }
@@ -33,15 +36,46 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         HotKeyManager.shared.unregisterAll()
     }
 
+    private func configureApplicationMenu() {
+        let mainMenu = NSMenu()
+
+        let appMenuItem = NSMenuItem()
+        mainMenu.addItem(appMenuItem)
+
+        let appMenu = NSMenu(title: "MacroKeys")
+        appMenuItem.submenu = appMenu
+        appMenu.addItem(NSMenuItem(title: "About MacroKeys", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: ""))
+        appMenu.addItem(NSMenuItem.separator())
+        appMenu.addItem(NSMenuItem(title: L("menu.quit"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+
+        let editMenuItem = NSMenuItem()
+        mainMenu.addItem(editMenuItem)
+
+        let editMenu = NSMenu(title: "Edit")
+        editMenuItem.submenu = editMenu
+        editMenu.addItem(NSMenuItem(title: "Undo", action: Selector(("undo:")), keyEquivalent: "z"))
+        editMenu.addItem(NSMenuItem(title: "Redo", action: Selector(("redo:")), keyEquivalent: "Z"))
+        editMenu.addItem(NSMenuItem.separator())
+        editMenu.addItem(NSMenuItem(title: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "x"))
+        editMenu.addItem(NSMenuItem(title: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c"))
+        editMenu.addItem(NSMenuItem(title: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v"))
+        editMenu.addItem(NSMenuItem(title: "Paste and Match Style", action: #selector(NSTextView.pasteAsPlainText(_:)), keyEquivalent: "V"))
+        editMenu.addItem(NSMenuItem.separator())
+        editMenu.addItem(NSMenuItem(title: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a"))
+
+        NSApp.mainMenu = mainMenu
+    }
+
     // MARK: - Actions
 
     private func triggerShortcut(keyNumber: Int) {
-        guard let shortcut = config.shortcuts.first(where: { $0.keyNumber == keyNumber && $0.enabled }),
+        guard keyNumber <= config.buttonCount,
+              let shortcut = config.activeShortcuts.first(where: { $0.keyNumber == keyNumber && $0.enabled }),
               !shortcut.actions.isEmpty else { return }
 
         Task { @MainActor in
-            ShortcutOverlayController.shared.show(shortcut: shortcut)
-            await ActionExecutor.shared.execute(actions: shortcut.actions)
+            let succeeded = await ActionExecutor.shared.execute(actions: shortcut.actions)
+            ShortcutOverlayController.shared.show(shortcut: shortcut, failed: !succeeded)
         }
     }
 
@@ -64,13 +98,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func saveAndReregister() {
+        config.normalize()
         _ = ConfigStore.save(config)
         Task { @MainActor in
             ActionExecutor.shared.configure(connections: config.connections)
         }
 
         HotKeyManager.shared.unregisterAll()
-        HotKeyManager.shared.register(shortcuts: config.shortcuts)
+        HotKeyManager.shared.register(shortcuts: config.activeShortcuts)
         statusItem.menu = buildMenu()
     }
 
@@ -80,7 +115,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(NSMenuItem(title: "MacroKeys", action: nil, keyEquivalent: ""))
         menu.addItem(NSMenuItem.separator())
 
-        for shortcut in config.shortcuts where shortcut.enabled {
+        for shortcut in config.activeShortcuts where shortcut.enabled {
             let item = NSMenuItem(
                 title: "\(shortcut.keyLabel) — \(shortcut.label)",
                 action: #selector(menuTriggerShortcut(_:)),

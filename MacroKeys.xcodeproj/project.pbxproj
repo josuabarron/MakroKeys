@@ -19,6 +19,7 @@
 		A2000000000000000000000A /* ShortcutOverlayController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000A /* ShortcutOverlayController.swift */; };
 		A2000000000000000000000B /* LocalizationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000B /* LocalizationManager.swift */; };
 		A2000000000000000000000C /* Localization in Resources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000C /* Localization */; };
+		A2000000000000000000000D /* LightkeyClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000D /* LightkeyClient.swift */; };
 		2BC68E04978B083DAC440445 /* X32Client.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2786C6E1F8A145E856EA3B44 /* X32Client.swift */; };
 		2BF70BDAC87052FDD4DB5ACC /* ActionExecutor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8649BCF72720E5C6F0F6640C /* ActionExecutor.swift */; };
 		3B66F3C008D0E2B79EAC8957 /* ProPresenterClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B24BD7677CF770C5AAE4542 /* ProPresenterClient.swift */; };
@@ -48,6 +49,7 @@
 		A1000000000000000000000A /* ShortcutOverlayController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutOverlayController.swift; sourceTree = "<group>"; };
 		A1000000000000000000000B /* LocalizationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalizationManager.swift; sourceTree = "<group>"; };
 		A1000000000000000000000C /* Localization */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Resources/Localization; sourceTree = "<group>"; };
+		A1000000000000000000000D /* LightkeyClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightkeyClient.swift; sourceTree = "<group>"; };
 		B6D6F9CDDFCF0253ADED4328 /* MacroKeys.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MacroKeys.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BA389FEE7FEE967AB1006044 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		BBBC945E7B7C6552E8E093A2 /* HotKeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotKeyManager.swift; sourceTree = "<group>"; };
@@ -74,6 +76,7 @@
 				A10000000000000000000001 /* ConfigView.swift */,
 				A10000000000000000000002 /* EditorWindowController.swift */,
 					BBBC945E7B7C6552E8E093A2 /* HotKeyManager.swift */,
+					A1000000000000000000000D /* LightkeyClient.swift */,
 					A1000000000000000000000B /* LocalizationManager.swift */,
 					A10000000000000000000007 /* LogWindowController.swift */,
 				6C9D05899DAE59B2822276FF /* main.swift */,
@@ -177,6 +180,7 @@
 				A20000000000000000000002 /* EditorWindowController.swift in Sources */,
 					7D1657403E5E2B420F3FF32E /* HotKeyManager.swift in Sources */,
 					A2000000000000000000000B /* LocalizationManager.swift in Sources */,
+					A2000000000000000000000D /* LightkeyClient.swift in Sources */,
 					A20000000000000000000007 /* LogWindowController.swift in Sources */,
 				66D5264326E9BAFC2C4ADA5E /* Models.swift in Sources */,
 				3B66F3C008D0E2B79EAC8957 /* ProPresenterClient.swift in Sources */,
@@ -242,7 +246,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -256,7 +260,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.1.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = MacroKeys;
@@ -303,7 +307,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -323,7 +327,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.1.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;

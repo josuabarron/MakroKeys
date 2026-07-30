@@ -12,10 +12,10 @@ final class ShortcutOverlayController {
 
     private init() {}
 
-    func show(shortcut: Shortcut) {
+    func show(shortcut: Shortcut, failed: Bool = false) {
         dismissWorkItem?.cancel()
 
-        let view = ShortcutOverlayView(shortcut: shortcut)
+        let view = ShortcutOverlayView(shortcut: shortcut, failed: failed)
         let hostingController = NSHostingController(rootView: view)
 
         let overlayWindow = NSWindow(contentViewController: hostingController)
@@ -40,7 +40,7 @@ final class ShortcutOverlayController {
             }
         }
         dismissWorkItem = item
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8, execute: item)
+        DispatchQueue.main.asyncAfter(deadline: .now() + (failed ? 4.5 : 1.8), execute: item)
     }
 
     private func position(window: NSWindow) {
@@ -56,12 +56,13 @@ final class ShortcutOverlayController {
 
 private struct ShortcutOverlayView: View {
     let shortcut: Shortcut
+    let failed: Bool
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: "keyboard")
+            Image(systemName: failed ? "exclamationmark.triangle.fill" : "keyboard")
                 .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(Color.accentColor)
+                .foregroundStyle(failed ? Color.red : Color.accentColor)
                 .frame(width: 34, height: 34)
 
             Text(shortcut.label.isEmpty ? L("shortcut.default_name", shortcut.keyNumber) : shortcut.label)
@@ -71,11 +72,20 @@ private struct ShortcutOverlayView: View {
         }
         .padding(.horizontal, 16)
         .frame(width: 340, height: 72, alignment: .leading)
-        .background(.ultraThinMaterial.opacity(0.78))
+        .background(
+            ZStack {
+                Rectangle()
+                    .fill(.ultraThinMaterial.opacity(0.78))
+                if failed {
+                    Rectangle()
+                        .fill(Color.red.opacity(0.20))
+                }
+            }
+        )
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .overlay(
             RoundedRectangle(cornerRadius: 10)
-                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+                .stroke(failed ? Color.red.opacity(0.75) : Color.primary.opacity(0.08), lineWidth: failed ? 1.5 : 1)
         )
     }
 }

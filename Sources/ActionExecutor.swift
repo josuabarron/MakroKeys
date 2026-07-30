@@ -8,28 +8,45 @@ class ActionExecutor: ObservableObject {
 
     private var ppClient: ProPresenterClient?
     private var x32Client: X32Client?
+    private var lightkeyClient: LightkeyClient?
 
     @Published var lastLog: [String] = []
     @Published var isConnectedPP: Bool = false
     @Published var isConnectedX32: Bool = false
+    @Published var isConnectedLightkey: Bool = false
 
     private init() {}
 
     func configure(connections: ConnectionConfig) {
         ppClient = ProPresenterClient(host: connections.ppHost, port: connections.ppPort)
         x32Client = X32Client(host: connections.x32IP, port: connections.x32Port)
+        lightkeyClient = LightkeyClient(host: connections.lightkeyHost, port: connections.lightkeyPort)
     }
 
-    func execute(actions: [Action]) async {
+    @discardableResult
+    func execute(actions: [Action]) async -> Bool {
         var logs: [String] = []
+        var failedServices = Set<ActionService>()
 
-        for action in actions {
+        if actions.contains(where: \.isX32), !isX32Reachable() {
+            failedServices.insert(.x32)
+            logs.append("✗ X32: not reachable")
+        }
+
+        if actions.contains(where: \.isLightkey), !isLightkeyReachable() {
+            failedServices.insert(.lightkey)
+            logs.append("✗ Lightkey: not reachable")
+        }
+
+        for action in actions where !failedServices.contains(service(for: action)) {
             let start = Date()
 
             if action.isProPresenter {
                 await executeProPresenterAction(action, logs: &logs)
             } else if action.isX32 {
                 executeX32Action(action, logs: &logs)
+            } else if action.isLightkey {
+                executeLightkeyAction(action, logs: &logs)
             }
 
             let elapsed = Date().timeIntervalSince(start) * 1000
@@ -39,6 +56,21 @@ class ActionExecutor: ObservableObject {
         }
 
         lastLog = logs
+        return !logs.contains { $0.hasPrefix("✗") }
+    }
+
+    private enum ActionService: Hashable {
+        case proPresenter
+        case x32
+        case lightkey
+        case unknown
+    }
+
+    private func service(for action: Action) -> ActionService {
+        if action.isProPresenter { return .proPresenter }
+        if action.isX32 { return .x32 }
+        if action.isLightkey { return .lightkey }
+        return .unknown
     }
 
     // MARK: - ProPresenter
@@ -400,6 +432,36 @@ class ActionExecutor: ObservableObject {
         }
     }
 
+    // MARK: - Lightkey
+
+    private func executeLightkeyAction(_ action: Action, logs: inout [String]) {
+        guard let lightkey = lightkeyClient else {
+            logs.append("✗ Lightkey: not configured")
+            return
+        }
+
+        switch action {
+        case .lightkeyCueToggle(let address, let fadeTime):
+            lightkey.sendCueCommand(address: address, command: .toggle, fadeTime: fadeTime)
+            logs.append("✓ Lightkey: cue TOGGLE \(address)")
+
+        case .lightkeyCueActivate(let address, let fadeTime):
+            lightkey.sendCueCommand(address: address, command: .activate, fadeTime: fadeTime)
+            logs.append("✓ Lightkey: cue ACTIVATE \(address)")
+
+        case .lightkeyCueDeactivate(let address, let fadeTime):
+            lightkey.sendCueCommand(address: address, command: .deactivate, fadeTime: fadeTime)
+            logs.append("✓ Lightkey: cue DEACTIVATE \(address)")
+
+        case .lightkeyOsc(let address, let value):
+            lightkey.sendOSC(address: address, value: value)
+            logs.append("✓ Lightkey: OSC \(address) = \(value)")
+
+        default:
+            break
+        }
+    }
+
     func testConnection() async {
         guard let pp = ppClient else { return }
         do {
@@ -416,5 +478,33 @@ class ActionExecutor: ObservableObject {
             return
         }
         isConnectedX32 = x32.testConnection()
+    }
+
+    func testLightkeyConnection() async {
+        guard let lightkey = lightkeyClient else {
+            isConnectedLightkey = false
+            return
+        }
+        isConnectedLightkey = lightkey.testConnection()
+    }
+
+    private func isX32Reachable() -> Bool {
+        guard let x32 = x32Client else {
+            isConnectedX32 = false
+            return false
+        }
+        let reachable = x32.testConnection(timeout: 0.6)
+        isConnectedX32 = reachable
+        return reachable
+    }
+
+    private func isLightkeyReachable() -> Bool {
+        guard let lightkey = lightkeyClient else {
+            isConnectedLightkey = false
+            return false
+        }
+        let reachable = lightkey.testConnection(timeout: 0.6)
+        isConnectedLightkey = reachable
+        return reachable
     }
 }
