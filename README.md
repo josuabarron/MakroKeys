@@ -6,6 +6,8 @@ MacroKeys is a small macOS menu bar app for triggering configurable keyboard sho
 
 The app stores its configuration locally in the user's Application Support folder. The interface supports German and English; the language can be changed in the settings window and translations live in `Resources/Localization`.
 
+I used https://github.com/rOzzy1987/MacroPad to program my MacroPad
+
 ## Hardware
 
 MacroKeys was originally written for this style of 6-key USB macro pad. The number of active buttons can be changed in the settings window.
