@@ -1,4 +1,5 @@
 import AppKit
+import ServiceManagement
 import SwiftUI
 
 // MARK: - AppDelegate
@@ -10,6 +11,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         config.normalize()
+        syncLaunchAtLoginState()
         configureApplicationMenu()
 
         // Configure executor
@@ -127,6 +129,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         menu.addItem(NSMenuItem.separator())
+        let launchAtLoginItem = NSMenuItem(
+            title: L("menu.launch_at_login"),
+            action: #selector(toggleLaunchAtLogin),
+            keyEquivalent: ""
+        )
+        launchAtLoginItem.target = self
+        launchAtLoginItem.image = launchAtLoginMenuImage()
+        menu.addItem(launchAtLoginItem)
         menu.addItem(NSMenuItem(title: L("menu.settings"), action: #selector(openSettings), keyEquivalent: ","))
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: L("menu.quit"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
@@ -142,5 +152,35 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func openSettings() {
         openConfigWindow()
+    }
+
+    @objc private func toggleLaunchAtLogin() {
+        do {
+            if config.launchAtLogin || SMAppService.mainApp.status == .enabled {
+                try SMAppService.mainApp.unregister()
+                config.launchAtLogin = false
+            } else {
+                try SMAppService.mainApp.register()
+                config.launchAtLogin = true
+            }
+        } catch {
+            print("Launch at login update failed: \(error.localizedDescription)")
+            config.launchAtLogin = SMAppService.mainApp.status == .enabled
+        }
+
+        _ = ConfigStore.save(config)
+        statusItem.menu = buildMenu()
+    }
+
+    private func syncLaunchAtLoginState() {
+        config.launchAtLogin = SMAppService.mainApp.status == .enabled
+        _ = ConfigStore.save(config)
+    }
+
+    private func launchAtLoginMenuImage() -> NSImage? {
+        let symbolName = config.launchAtLogin ? "checkmark.circle.fill" : "circle"
+        let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil)
+        image?.isTemplate = true
+        return image
     }
 }

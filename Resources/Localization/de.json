@@ -131,6 +131,7 @@
   "hotkey.key": "Taste %u",
   "log.empty": "Keine Log-Einträge",
   "log.title": "Log",
+  "menu.launch_at_login": "Beim Anmelden starten",
   "menu.quit": "MacroKeys beenden",
   "menu.settings": "Einstellungen...",
   "settings.language": "Sprache",
